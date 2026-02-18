@@ -1,49 +1,38 @@
-"use client";
-
-import { useEffect, useState, useCallback } from "react";
-import { useRole } from "@/context/role-context";
-import { getExpenses } from "@/lib/actions/approvals";
-import type { ExpenseWithUser } from "@/lib/types";
-import { DataTable } from "./data-table";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
-
 export function ApprovalsContent() {
-  const { role, zone, hasPermission } = useRole();
-  const [data, setData] = useState<ExpenseWithUser[] | null>(null);
+  return (
+    <main className="min-h-screen bg-zinc-50 px-6 py-10 text-zinc-900 dark:bg-black dark:text-zinc-50">
+      <div className="mx-auto flex w-full max-w-5xl flex-col gap-8">
+        <header className="flex flex-col gap-2">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-zinc-500 dark:text-zinc-400">
+            Finance Ops
+          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">Approvals</h1>
+          <p className="max-w-2xl text-base text-zinc-600 dark:text-zinc-400">
+            Review pending requests and keep the workflow moving. This page is a
+            lightweight placeholder until the approvals pipeline is wired in.
+          </p>
+        </header>
 
-  const loadData = useCallback(async () => {
-    if (!hasPermission("module.expenses")) return;
-    const expenses = await getExpenses(role, zone ?? undefined);
-    setData(expenses);
-  }, [role, zone, hasPermission]);
+        <section className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="text-lg font-semibold">Expense Requests</h2>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              No requests are waiting for approval.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+            <h2 className="text-lg font-semibold">Purchase Orders</h2>
+            <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+              All purchase orders are up to date.
+            </p>
+          </div>
+        </section>
 
-  useEffect(() => {
-    if (!hasPermission("module.expenses")) return;
-    setData(null);
-    loadData();
-    const interval = setInterval(loadData, 8000);
-    return () => clearInterval(interval);
-  }, [loadData, hasPermission]);
-
-  if (!hasPermission("module.expenses")) {
-    return (
-      <Card className="flex h-64 items-center justify-center border-slate-200 bg-white">
-        <p className="text-sm text-slate-500">
-          No tienes permisos para ver el Centro de Gastos.
-        </p>
-      </Card>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-10 w-full max-w-sm" />
-        <Skeleton className="h-[500px] rounded-xl" />
+        <section className="rounded-2xl border border-dashed border-zinc-300 bg-white/60 p-6 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900/40 dark:text-zinc-400">
+          Connect this page to your approvals service to surface pending items,
+          SLA timers, and escalation actions.
+        </section>
       </div>
-    );
-  }
-
-  return <DataTable data={data} onRefresh={loadData} />;
+    </main>
+  );
 }

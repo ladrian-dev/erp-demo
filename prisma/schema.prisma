@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Client {
+  id             String   @id @default(cuid())
+  name           String
+  zone           String   // Norte | Bajio | Centro | Sur | Peninsular
+  siteName       String
+  siteType       String   // Eolica | Solar
+  contactName    String
+  contactEmail   String
+  contactPhone   String?
+  contractStatus String   @default("active") // active | pending | expired
+  address        String?
+  lat            Float?
+  lng            Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  users     User[]
+  expenses  Expense[]
+  incidents Incident[]
+  vehicles  Vehicle[]
+}
+
+model User {
+  id         String   @id @default(cuid())
+  name       String
+  email      String   @unique
+  role       String   @default("employee") // employee | approver | admin
+  department String
+  avatarUrl  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id])
+
+  expenses         Expense[]  @relation("UserExpenses")
+  approvedExpenses Expense[]  @relation("ApproverExpenses")
+  assets           Asset[]
+  vehicles         Vehicle[]
+  incidents        Incident[] @relation("ReportedIncidents")
+  assignedIncidents Incident[] @relation("AssignedIncidents")
+}
+
+model Role {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  name        String
+  description String?
+  isSystem    Boolean  @default(false)
+  permissions Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Expense {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  amount      Float
+  category    String
+  project     String
+  status      String   @default("pending") // pending | approved | rejected | synced
+  level       String   @default("level_1") // level_1 | executive
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userId     String
+  user       User      @relation("UserExpenses", fields: [userId], references: [id])
+  approverId String?
+  approver   User?     @relation("ApproverExpenses", fields: [approverId], references: [id])
+  clientId   String?
+  client     Client?   @relation(fields: [clientId], references: [id])
+  erpSync    ErpSync?
+}
+
+model ErpSync {
+  id        String   @id @default(cuid())
+  status    String   @default("pending") // pending | synced | error
+  reference String?
+  syncedAt  DateTime @default(now())
+
+  expenseId String  @unique
+  expense   Expense @relation(fields: [expenseId], references: [id])
+}
+
+model Asset {
+  id           String   @id @default(cuid())
+  name         String
+  category     String
+  serialNumber String?
+  status       String   @default("active") // active | maintenance | retired
+  location     String
+  value        Float
+  purchaseDate DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedToId String?
+  assignedTo   User?   @relation(fields: [assignedToId], references: [id])
+}
+
+model Vehicle {
+  id           String   @id @default(cuid())
+  make         String
+  model        String
+  year         Int
+  licensePlate String   @unique
+  status       String   @default("active") // active | maintenance | out_of_service
+  ownership    String   @default("propio") // propio | arrendamiento
+  mileage      Int
+  fuelType     String   @default("Gasolina") // Gasolina | Diesel
+  vinNumber    String?
+  lastService  DateTime?
+  lat          Float?
+  lng          Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  assignedToId String?
+  assignedTo   User?   @relation(fields: [assignedToId], references: [id])
+  clientId     String?
+  client       Client? @relation(fields: [clientId], references: [id])
+  logs         VehicleLog[]
+}
+
+model VehicleLog {
+  id            String   @id @default(cuid())
+  eventType     String   // mantenimiento | combustible | checkpoint | cambio_aceite | revision | incidente
+  description   String
+  mileageAtEvent Int?
+  cost          Float?
+  lat           Float?
+  lng           Float?
+  createdAt     DateTime @default(now())
+
+  vehicleId String
+  vehicle   Vehicle @relation(fields: [vehicleId], references: [id])
+}
+
+model Incident {
+  id          String   @id @default(cuid())
+  title       String
+  type        String   // intrusion | equipment_failure | weather_alert | medical | panic_button | access_violation
+  severity    String   // critical | high | medium | low
+  description String
+  status      String   @default("open") // open | assigned | in_progress | resolved | dismissed
+  resolvedAt  DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  clientId     String
+  client       Client  @relation(fields: [clientId], references: [id])
+  reportedById String
+  reportedBy   User    @relation("ReportedIncidents", fields: [reportedById], references: [id])
+  assignedToId String?
+  assignedTo   User?   @relation("AssignedIncidents", fields: [assignedToId], references: [id])
+}
